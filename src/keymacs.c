@@ -8,15 +8,58 @@
 #include "log.h"
 #include "xkey.h"
 
+static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
+        unsigned int modifiers);
+
+static BOOL alt_x_pressed = FALSE;
 static BOOL control_x_pressed = FALSE;
 static unsigned int selection_mask = 0;
 
-static BOOL simple_handler(XKeyEvent *key_event, KeySym key_sym,
+void keymacs_on_bind_key() {
+    // M-x
+    xkey_bind_key(XK_X, AltMask, key_handler);
+    // C-x
+    xkey_bind_key(XK_X, ControlMask, key_handler);
+    // Navigation
+    xkey_bind_key(XK_F, ControlMask, key_handler);
+    xkey_bind_key(XK_B, ControlMask, key_handler);
+    xkey_bind_key(XK_P, ControlMask, key_handler);
+    xkey_bind_key(XK_N, ControlMask, key_handler);
+    xkey_bind_key(XK_A, ControlMask, key_handler);
+    xkey_bind_key(XK_E, ControlMask, key_handler);
+    xkey_bind_key(XK_V, ControlMask, key_handler);
+    xkey_bind_key(XK_V, AltMask, key_handler);
+    xkey_bind_key(XK_comma, AltMask | ShiftMask, key_handler);
+    xkey_bind_key(XK_period, AltMask | ShiftMask, key_handler);
+    xkey_bind_key(XK_F, AltMask, key_handler);
+    xkey_bind_key(XK_B, AltMask, key_handler);
+    // Edit
+    xkey_bind_key(XK_space, ControlMask, key_handler);
+    xkey_bind_key(XK_H, 0, key_handler);
+    xkey_bind_key(XK_W, ControlMask, key_handler);
+    xkey_bind_key(XK_W, AltMask, key_handler);
+    xkey_bind_key(XK_Y, ControlMask, key_handler);
+    xkey_bind_key(XK_D, ControlMask, key_handler);
+    xkey_bind_key(XK_D, AltMask, key_handler);
+    xkey_bind_key(XK_slash, ControlMask, key_handler);
+    // Search
+    xkey_bind_key(XK_S, ControlMask, key_handler);
+    xkey_bind_key(XK_R, ControlMask, key_handler);
+    // Frame
+    xkey_bind_key(XK_K, 0, key_handler);
+    xkey_bind_key(XK_C, ControlMask, key_handler);
+    // Misc
+    xkey_bind_key(XK_S, ControlMask, key_handler);
+    // Quit
+    xkey_bind_key(XK_G, ControlMask, key_handler);
+}
+
+static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
         unsigned int modifiers) {
 
     BOOL is_press = key_event->type == KeyPress;
     Display *display = key_event->display;
-    log_info("simple_handler: Handling key sym=0x%x, modifiers=0x%x, press=%d",
+    log_info("key_handler: Handling key sym=0x%x, modifiers=0x%x, press=%d",
             key_sym, modifiers, is_press);
 
     if (is_press) {
@@ -26,9 +69,16 @@ static BOOL simple_handler(XKeyEvent *key_event, KeySym key_sym,
             // TODO: Clear selection
             selection_mask = 0;
         }
-        if (control_x_pressed) {
+        if (alt_x_pressed) {
+            // M-x mode
+            alt_x_pressed = FALSE;
+            log_info("key_handler: M-X pressed=%d", alt_x_pressed);
+            return FALSE;
+        } else if (control_x_pressed) {
             // C-x mode
             control_x_pressed = FALSE;
+            log_info("key_handler: C-X pressed=%d",
+                    control_x_pressed);
             // Edit
             if (key_sym == XK_H && modifiers == 0) {
                 xkey_send_key(key_event->display, XK_A, ControlMask);
@@ -48,10 +98,15 @@ static BOOL simple_handler(XKeyEvent *key_event, KeySym key_sym,
             }
         } else {
             // Normal mode
+            // M-X
+            if (key_sym == XK_X && modifiers == AltMask) {
+                alt_x_pressed = TRUE;
+                log_info("key_handler: M-X pressed=%d",
+                        alt_x_pressed);
             // C-X
-            if (key_sym == XK_X && modifiers == ControlMask) {
+            } else if (key_sym == XK_X && modifiers == ControlMask) {
                 control_x_pressed = TRUE;
-                log_info("simple_handler: C-X pressed=%d",
+                log_info("key_handler: C-X pressed=%d",
                         control_x_pressed);
             // Navigation
             } else if (key_sym == XK_F && modifiers == ControlMask) {
@@ -81,7 +136,7 @@ static BOOL simple_handler(XKeyEvent *key_event, KeySym key_sym,
             // Edit
             } else if (key_sym == XK_space && modifiers == ControlMask) {
                 selection_mask ^= ShiftMask;
-                log_info("simple_handler: Selection=%d",
+                log_info("key_handler: C-Space, selection=%d",
                         selection_mask == ShiftMask);
             } else if (key_sym == XK_W && modifiers == ControlMask) {
                 xkey_send_key(key_event->display, XK_X, ControlMask);
@@ -114,41 +169,4 @@ static BOOL simple_handler(XKeyEvent *key_event, KeySym key_sym,
         }
     }
     return TRUE;
-}
-
-void keymacs_on_bind_key() {
-    // C-X
-    xkey_bind_key(XK_X, ControlMask, simple_handler);
-    // Navigation
-    xkey_bind_key(XK_F, ControlMask, simple_handler);
-    xkey_bind_key(XK_B, ControlMask, simple_handler);
-    xkey_bind_key(XK_P, ControlMask, simple_handler);
-    xkey_bind_key(XK_N, ControlMask, simple_handler);
-    xkey_bind_key(XK_A, ControlMask, simple_handler);
-    xkey_bind_key(XK_E, ControlMask, simple_handler);
-    xkey_bind_key(XK_V, ControlMask, simple_handler);
-    xkey_bind_key(XK_V, AltMask, simple_handler);
-    xkey_bind_key(XK_comma, AltMask | ShiftMask, simple_handler);
-    xkey_bind_key(XK_period, AltMask | ShiftMask, simple_handler);
-    xkey_bind_key(XK_F, AltMask, simple_handler);
-    xkey_bind_key(XK_B, AltMask, simple_handler);
-    // Edit
-    xkey_bind_key(XK_space, ControlMask, simple_handler);
-    xkey_bind_key(XK_H, 0, simple_handler);
-    xkey_bind_key(XK_W, ControlMask, simple_handler);
-    xkey_bind_key(XK_W, AltMask, simple_handler);
-    xkey_bind_key(XK_Y, ControlMask, simple_handler);
-    xkey_bind_key(XK_D, ControlMask, simple_handler);
-    xkey_bind_key(XK_D, AltMask, simple_handler);
-    xkey_bind_key(XK_slash, ControlMask, simple_handler);
-    // Search
-    xkey_bind_key(XK_S, ControlMask, simple_handler);
-    xkey_bind_key(XK_R, ControlMask, simple_handler);
-    // Frame
-    xkey_bind_key(XK_K, 0, simple_handler);
-    xkey_bind_key(XK_C, ControlMask, simple_handler);
-    // Misc
-    xkey_bind_key(XK_S, ControlMask, simple_handler);
-    // Quit
-    xkey_bind_key(XK_G, ControlMask, simple_handler);
 }
