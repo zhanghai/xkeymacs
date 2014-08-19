@@ -41,6 +41,7 @@ void keymacs_on_bind_key() {
     xkey_bind_key(XK_Y, ControlMask, key_handler);
     xkey_bind_key(XK_D, ControlMask, key_handler);
     xkey_bind_key(XK_D, AltMask, key_handler);
+    xkey_bind_key(XK_K, ControlMask, key_handler);
     xkey_bind_key(XK_slash, ControlMask, key_handler);
     // Search
     xkey_bind_key(XK_S, ControlMask, key_handler);
@@ -68,6 +69,11 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
             control_x_pressed = FALSE;
             // TODO: Clear selection
             selection_mask = 0;
+            // Special case for M-x mode
+            if (alt_x_pressed) {
+                alt_x_pressed = FALSE;
+                return FALSE;
+            }
         }
         if (alt_x_pressed) {
             // M-x mode

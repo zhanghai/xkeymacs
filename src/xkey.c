@@ -123,7 +123,11 @@ static void initialize_modifier_states() {
 }
 
 void xkey_finalize() {
-    XCloseDisplay(display);
+    XUngrabKey(display, AnyKey, AnyModifier, window);
+    XUngrabKeyboard(display, CurrentTime);
+    // The following line causes application to hang, since we are
+    // exiting we just ignore it.
+    //XCloseDisplay(display);
 }
 
 void xkey_bind_key(KeySym key_sym, unsigned int modifiers,
@@ -307,7 +311,7 @@ void xkey_loop() {
     BOOL handled;
     int i;
 
-    while (1) {
+    while (TRUE) {
 
         XNextEvent(display, &event);
         if (!(event.type == KeyPress || event.type == KeyRelease)) {
