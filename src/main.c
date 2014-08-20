@@ -24,15 +24,25 @@ static void init_daemon();
 
 int main(int argc, char **argv) {
 
-    if (argc > 1) {
-        if (strcmp(argv[1], "-d") == 0) {
+    if (argc == 2) {
+        if (strcmp(argv[1], "-d") == 0
+                || strcmp(argv[1], "--daemon") == 0) {
             init_daemon();
+        } else if (strcmp(argv[1], "-h") == 0
+                || strcmp(argv[1], "--help") == 0) {
+            print_help();
+            return EXIT_SUCCESS;
         } else {
             log_error("main: Unknown argument");
             printf("\n");
             print_help();
             return EXIT_FAILURE;
         }
+    } else if (argc > 2) {
+        log_error("main: Too many arguments");
+        printf("\n");
+        print_help();
+        return EXIT_FAILURE;
     }
 
     xkey_initialize();
@@ -51,8 +61,10 @@ static void print_help() {
            "Usage:\n"
            "\txkeymacs [OPTION]\n"
            "Options:\n"
-           "\t-d\n"
-           "\t\tstart xkeymacs as daemon\n");
+           "\t-d, --daemon\n"
+           "\t\tstart xkeymacs as daemon\n"
+           "\t-h, --help\n"
+           "\t\tdisplay this help and exit\n");
 }
 
 static void trap_finalize() {
