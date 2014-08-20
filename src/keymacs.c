@@ -49,10 +49,13 @@ void keymacs_on_bind_key() {
     // Frame
     // Already bound
     //xkey_bind_key(XK_F, ControlMask, key_handler);
+    // Already bound
+    //xkey_bind_key(XK_S, ControlMask, key_handler);
     xkey_bind_key(XK_K, 0, key_handler);
     xkey_bind_key(XK_C, ControlMask, key_handler);
     // Misc
-    xkey_bind_key(XK_S, ControlMask, key_handler);
+    xkey_bind_key(XK_M, ControlMask, key_handler);
+    xkey_bind_key(XK_J, ControlMask, key_handler);
     // Quit
     xkey_bind_key(XK_G, ControlMask, key_handler);
 }
@@ -103,19 +106,18 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
                 log_info("key_handler: M-X counter=%d", alt_x_counter);
                 xkey_send_key(key_event->display, XK_A, ControlMask);
             // Frame
-            } else if (key_sym == XK_F && modifiers == 0) {
+            } else if (key_sym == XK_F && modifiers == ControlMask) {
                 xkey_send_key(key_event->display, XK_O, ControlMask);
+            } else if (key_sym == XK_S && modifiers == ControlMask) {
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d", alt_x_counter);
+                xkey_send_key(key_event->display, XK_S, ControlMask);
             } else if (key_sym == XK_K && modifiers == 0) {
                 // FIXME: Partially broken: sometimes switches to tty
                 xkey_send_key(key_event->display, XK_F4, ControlMask);
             } else if (key_sym == XK_C && modifiers == ControlMask) {
                 // FIXME: Partially broken: sometimes switches to tty
                 xkey_send_key(key_event->display, XK_F4, AltMask);
-            // Misc
-            } else if (key_sym == XK_S && modifiers == ControlMask) {
-                ++alt_x_counter;
-                log_info("key_handler: M-X counter=%d", alt_x_counter);
-                xkey_send_key(key_event->display, XK_S, ControlMask);
             } else {
                 // TODO: Ring a bell
             }
@@ -192,6 +194,11 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
                 xkey_send_key(key_event->display, XK_F3, 0);
             } else if (key_sym == XK_R && modifiers == ControlMask) {
                 xkey_send_key(key_event->display, XK_F3, ShiftMask);
+            // Misc
+            } else if (key_sym == XK_M && modifiers == ControlMask) {
+                xkey_send_key(key_event->display, XK_Return, 0);
+            } else if (key_sym == XK_J && modifiers == ControlMask) {
+                xkey_send_key(key_event->display, XK_Return, 0);
             } else {
                 // Pass through keys bound for C-x in normal mode
                 return FALSE;
