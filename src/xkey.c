@@ -5,7 +5,7 @@
 
 #include "xkey.h"
 
-#include <string.h>
+#include <stdlib.h>
 
 #include <X11/extensions/XTest.h>
 #include <X11/XKBlib.h>
@@ -51,28 +51,12 @@ static unsigned int bound_keys_count = 0;
 
 void xkey_initialize() {
 
-    //int screen_number;
-    BOOL supported;
-
     display= XOpenDisplay(NULL);
     if (display == NULL) {
-        // TODO: Print critical and exit.
+        log_error("xkey_initialize: XOpenDisplay returned null");
+        exit(EXIT_FAILURE);
     }
     window = DefaultRootWindow(display);
-
-    // Seems unnecessary
-    /*
-    for (screen_number = 0; screen_number < ScreenCount(display);
-            ++screen_number) {
-        XSelectInput(display, RootWindow(display, screen_number),
-                KeyPressMask | KeyReleaseMask);
-    }
-    */
-
-    XkbSetDetectableAutoRepeat(display, True, &supported);
-    if (!supported) {
-        log_error("xkey_initialize: Detectable auto repeat not supported");
-    }
 
     initialize_modifier_masks();
 
