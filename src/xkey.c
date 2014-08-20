@@ -194,6 +194,12 @@ void xkey_send_key(Display *display, KeySym key_sym,
     BOOL need_control, has_control, need_alt, has_alt, need_shift,
             has_shift;
 
+    log_info("xkey_send_key: Sending %s%s%s%s",
+        modifiers & ControlMask ? "Ctrl + " : "",
+        modifiers & ShiftMask ? "Shift + " : "",
+        modifiers & AltMask ? "Alt + " : "",
+        XKeysymToString(key_sym));
+
     key_code = XKeysymToKeycode(display, key_sym);
     log_info("xkey_send_key: Sending key code=0x%x, modifiers=0x%x",
             key_code, modifiers);
@@ -216,7 +222,7 @@ void xkey_send_key(Display *display, KeySym key_sym,
     XUngrabKeyboard(display, CurrentTime);
 
     // TODO: Is this needed?
-    //XTestGrabControl(display, True);
+    XTestGrabControl(display, True);
 
     if (need_control && !has_control) {
         XTestFakeKeyEvent(display, control_l_key_code, True,
@@ -300,7 +306,7 @@ void xkey_send_key(Display *display, KeySym key_sym,
         }
     }
 
-    //XTestGrabControl(display, False);
+    XTestGrabControl(display, False);
 }
 
 void xkey_loop() {
@@ -320,7 +326,7 @@ void xkey_loop() {
 
         key_event = &event.xkey;
         modifiers = XKEY_NORMALIZE_MODIFIERS(key_event->state);
-        log_info("xkey_loop: Handling key code=0x%x, modifiers=0x%x, press=%d",
+        log_info("xkey_loop: Processing key code=0x%x, modifiers=0x%x, press=%d",
                 key_event->keycode, modifiers,
                 key_event->type == KeyPress);
 

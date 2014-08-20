@@ -11,8 +11,8 @@
 static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
         unsigned int modifiers);
 
-static BOOL alt_x_pressed = FALSE;
-static BOOL control_x_pressed = FALSE;
+static unsigned int alt_x_counter = 0;
+static BOOL control_x_mode = FALSE;
 static unsigned int selection_mask = 0;
 
 void keymacs_on_bind_key() {
@@ -47,6 +47,8 @@ void keymacs_on_bind_key() {
     xkey_bind_key(XK_S, ControlMask, key_handler);
     xkey_bind_key(XK_R, ControlMask, key_handler);
     // Frame
+    // Already bound
+    //xkey_bind_key(XK_F, ControlMask, key_handler);
     xkey_bind_key(XK_K, 0, key_handler);
     xkey_bind_key(XK_C, ControlMask, key_handler);
     // Misc
@@ -55,65 +57,81 @@ void keymacs_on_bind_key() {
     xkey_bind_key(XK_G, ControlMask, key_handler);
 }
 
+// FIXME: Keys bound and sent by xkey_send_key() cannot be replayed.
 static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
         unsigned int modifiers) {
 
-    BOOL is_press = key_event->type == KeyPress;
-    Display *display = key_event->display;
+    BOOL is_press;
+    Display *display;
+
+    log_info("key_handler: Handling %s%s%s%s",
+        modifiers & ControlMask ? "Ctrl + " : "",
+        modifiers & ShiftMask ? "Shift + " : "",
+        modifiers & AltMask ? "Alt + " : "",
+        XKeysymToString(key_sym));
+
+    is_press = key_event->type == KeyPress;
+    display = key_event->display;
     log_info("key_handler: Handling key sym=0x%x, modifiers=0x%x, press=%d",
             key_sym, modifiers, is_press);
 
     if (is_press) {
-        // Quit
-        if (key_sym == XK_G && modifiers == ControlMask) {
-            control_x_pressed = FALSE;
+        if (alt_x_counter > 0) {
+            // M-x mode
+            --alt_x_counter;
+            log_info("key_handler: M-X counter=%d", alt_x_counter);
+            return FALSE;
+        } else if (key_sym == XK_G && modifiers == ControlMask) {
+            // Quit
+            log_info("key_handler: C-g, quit, M-x counter=%d, C-x mode=%d, selection=%d",
+                    alt_x_counter, control_x_mode,
+                    selection_mask == ShiftMask);
+            // M-x mode handled already
+            //alt_x_counter = FALSE;
+            control_x_mode = FALSE;
             // TODO: Clear selection
             selection_mask = 0;
-            // Special case for M-x mode
-            if (alt_x_pressed) {
-                alt_x_pressed = FALSE;
-                return FALSE;
-            }
-        }
-        if (alt_x_pressed) {
-            // M-x mode
-            alt_x_pressed = FALSE;
-            log_info("key_handler: M-X pressed=%d", alt_x_pressed);
-            return FALSE;
-        } else if (control_x_pressed) {
+            return TRUE;
+        } else if (control_x_mode) {
             // C-x mode
-            control_x_pressed = FALSE;
-            log_info("key_handler: C-X pressed=%d",
-                    control_x_pressed);
+            control_x_mode = FALSE;
+            log_info("key_handler: C-X mode=%d",
+                    control_x_mode);
             // Edit
             if (key_sym == XK_H && modifiers == 0) {
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d", alt_x_counter);
                 xkey_send_key(key_event->display, XK_A, ControlMask);
             // Frame
+            } else if (key_sym == XK_F && modifiers == 0) {
+                xkey_send_key(key_event->display, XK_O, ControlMask);
             } else if (key_sym == XK_K && modifiers == 0) {
-                // FIXME: Partially broken: switches to tty
+                // FIXME: Partially broken: sometimes switches to tty
                 xkey_send_key(key_event->display, XK_F4, ControlMask);
             } else if (key_sym == XK_C && modifiers == ControlMask) {
-                // FIXME: Partially broken: switches to tty
+                // FIXME: Partially broken: sometimes switches to tty
                 xkey_send_key(key_event->display, XK_F4, AltMask);
             // Misc
             } else if (key_sym == XK_S && modifiers == ControlMask) {
-                // FIXME: Broken
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d", alt_x_counter);
                 xkey_send_key(key_event->display, XK_S, ControlMask);
             } else {
                 // TODO: Ring a bell
             }
+            return TRUE;
         } else {
             // Normal mode
             // M-X
             if (key_sym == XK_X && modifiers == AltMask) {
-                alt_x_pressed = TRUE;
-                log_info("key_handler: M-X pressed=%d",
-                        alt_x_pressed);
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d",
+                        alt_x_counter);
             // C-X
             } else if (key_sym == XK_X && modifiers == ControlMask) {
-                control_x_pressed = TRUE;
-                log_info("key_handler: C-X pressed=%d",
-                        control_x_pressed);
+                control_x_mode = TRUE;
+                log_info("key_handler: C-X mode=%d",
+                        control_x_mode);
             // Navigation
             } else if (key_sym == XK_F && modifiers == ControlMask) {
                 xkey_send_key(display, XK_Right, selection_mask);
@@ -145,10 +163,14 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
                 log_info("key_handler: C-Space, selection=%d",
                         selection_mask == ShiftMask);
             } else if (key_sym == XK_W && modifiers == ControlMask) {
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d", alt_x_counter);
                 xkey_send_key(key_event->display, XK_X, ControlMask);
             } else if (key_sym == XK_W && modifiers == AltMask) {
                 xkey_send_key(key_event->display, XK_C, ControlMask);
             } else if (key_sym == XK_Y && modifiers == ControlMask) {
+                ++alt_x_counter;
+                log_info("key_handler: M-X counter=%d", alt_x_counter);
                 xkey_send_key(key_event->display, XK_V, ControlMask);
             } else if (key_sym == XK_D && modifiers == ControlMask) {
                 xkey_send_key(key_event->display, XK_Delete, 0);
@@ -159,6 +181,8 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
                     xkey_send_key(key_event->display, XK_End, ShiftMask);
                     xkey_send_key(key_event->display, XK_Delete, 0);
                 } else {
+                    ++alt_x_counter;
+                    log_info("key_handler: M-X counter=%d", alt_x_counter);
                     xkey_send_key(key_event->display, XK_X, ControlMask);
                 }
             } else if (key_sym == XK_slash && modifiers == ControlMask) {
@@ -172,7 +196,12 @@ static BOOL key_handler(XKeyEvent *key_event, KeySym key_sym,
                 // Pass through keys bound for C-x in normal mode
                 return FALSE;
             }
+            return TRUE;
         }
+    } else {
+        // KeyRelease event
+        // For unknown reason keys sent by xkey_send_key() and
+        // replayed can have their KeyRelease event passed here.
+        return TRUE;
     }
-    return TRUE;
 }
