@@ -76,7 +76,7 @@ static void trap_finalize() {
 
 static void finalize_handler(int sig) {
 
-    log_info("finalize_handler: Finalizing, sig=%d", sig);
+    log_info("finalize_handler: Finalizing, signal=%d", sig);
     xkey_finalize();
 
     log_info("finalize_handler: Exiting");
